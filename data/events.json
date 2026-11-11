@@ -1,0 +1,161 @@
+{
+  "events": [
+    {
+      "id": "sample_start",
+      "date": "2023-11-01",
+      "kind": "index_start",
+      "panel": "index",
+      "title": "起点",
+      "lines": [
+        "起点 上证 3023 / 沪深300 3571",
+        "再基准 100"
+      ],
+      "dx": 8,
+      "dy": 18,
+      "ha": "left"
+    },
+    {
+      "id": "share_split",
+      "date": "2024-09-20",
+      "kind": "share_split",
+      "panel": "aum",
+      "title": "510310份额折算",
+      "lines": [
+        "510310份额折算",
+        "(1:0.4998，规模连续)"
+      ],
+      "dx": 6,
+      "dy": 12,
+      "ha": "left"
+    },
+    {
+      "id": "turn_20240924",
+      "date": "2024-09-24",
+      "kind": "turning",
+      "panel": "aum",
+      "title": "924行情前夜",
+      "lines": [
+        "924行情前夜",
+        "2024-09-24  规模 8,030亿元"
+      ],
+      "dx": -6,
+      "dy": -28,
+      "ha": "right"
+    },
+    {
+      "id": "turn_20241008",
+      "date": "2024-10-08",
+      "kind": "turning",
+      "panel": "aum",
+      "title": "国庆后高开",
+      "lines": [
+        "国庆后高开",
+        "2024-10-08  规模 10,735亿元"
+      ],
+      "dx": 8,
+      "dy": 16,
+      "ha": "left"
+    },
+    {
+      "id": "ratio_start",
+      "date": "2024-12-31",
+      "kind": "ratio_start",
+      "panel": "ratio",
+      "title": "占比起点",
+      "lines": [
+        "占比起点 2024-12-31",
+        "4.55%  （首个官方分母时点）"
+      ],
+      "dx": 10,
+      "dy": 26,
+      "ha": "left"
+    },
+    {
+      "id": "turn_20250407",
+      "date": "2025-04-07",
+      "kind": "turning",
+      "panel": "ratio",
+      "title": "日内急挫",
+      "lines": [
+        "日内急挫",
+        "2025-04-07  4.59%",
+        "规模 8,632亿元"
+      ],
+      "dx": -8,
+      "dy": -26,
+      "ha": "right"
+    },
+    {
+      "id": "ratio_max",
+      "date": "2025-04-21",
+      "kind": "ratio_max",
+      "panel": "ratio",
+      "title": "占比最高",
+      "lines": [
+        "占比最高 2025-04-21",
+        "5.08%  /  规模 10,074亿元"
+      ],
+      "dx": 10,
+      "dy": 16,
+      "ha": "left"
+    },
+    {
+      "id": "aum_max",
+      "date": "2026-01-06",
+      "kind": "aum_max",
+      "panel": "ratio",
+      "title": "合计规模最高",
+      "lines": [
+        "合计规模最高",
+        "2026-01-06  4.72%",
+        "规模 12,002亿元"
+      ],
+      "dx": 10,
+      "dy": 8,
+      "ha": "left"
+    },
+    {
+      "id": "ratio_min",
+      "date": "2026-07-06",
+      "kind": "ratio_min",
+      "panel": "ratio",
+      "title": "占比最低",
+      "lines": [
+        "占比最低 2026-07-06",
+        "0.75%  /  规模 1,984亿元"
+      ],
+      "dx": -10,
+      "dy": -26,
+      "ha": "right"
+    },
+    {
+      "id": "window_end",
+      "date": "2026-11-10",
+      "kind": "window_end",
+      "panel": "ratio",
+      "title": "窗口末",
+      "lines": [
+        "窗口末 2026-11-10",
+        "1.89%  /  规模 4,360亿元"
+      ],
+      "dx": -12,
+      "dy": 24,
+      "ha": "right"
+    },
+    {
+      "id": "index_end",
+      "date": "2026-11-10",
+      "kind": "index_end",
+      "panel": "index",
+      "title": "期末",
+      "lines": [
+        "期末 上证 3664（121.2）",
+        "沪深300 4059（113.7）"
+      ],
+      "dx": -8,
+      "dy": -28,
+      "ha": "right"
+    }
+  ],
+  "source": "window-locked"
+}

@@ -1,0 +1,306 @@
+/* 占比系统 — dark financial page, locked palette */
+:root {
+  --bg: #0b0e14;
+  --panel: #10141c;
+  --grid: #2a3140;
+  --text: #e8edf2;
+  --muted: #8b95a5;
+  --gold: #f0c14b;
+  --cyan: #6ec6c1;
+  --red: #e06c75;
+  --blue: #61afef;
+  --official: #ffffff;
+  --anno-bg: #1a2230;
+  --anno-border: #3a4558;
+  --legend-bg: #151b26;
+  --warn-bg: #1a1408;
+  --warn-border: #5a4318;
+  --footer: #6b7380;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
+               "PingFang SC", "Microsoft YaHei", "Heiti SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+header.top {
+  flex: 0 0 auto;
+  padding: 8px 18px 6px;
+  border-bottom: 1px solid var(--grid);
+  background: var(--bg);
+}
+
+h1 {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.koujing {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.koujing-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 5px;
+  justify-content: center;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--grid);
+  background: var(--panel);
+  border-radius: 3px;
+}
+
+.pill .k { color: var(--muted); }
+.pill .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.pill.warn {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+.pill.warn .v { color: var(--gold); }
+.pill.warn .k { color: #d4c08a; }
+
+.basket, .formula, .note {
+  margin: 2px 0;
+  text-align: left;
+}
+
+.basket { color: var(--muted); }
+.formula { color: var(--muted); }
+.note { color: #d4c08a; }
+
+.stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 8px 0;
+}
+
+.chart-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+#chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  min-width: 196px;
+  max-width: 260px;
+  padding: 7px 9px 8px;
+  background: rgba(26, 34, 48, 0.94);
+  border: 1px solid var(--anno-border);
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip[hidden] { display: none; }
+
+.tooltip .t-date {
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.tooltip .t-pin {
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.tooltip .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.tooltip .row .lab { color: var(--muted); }
+.tooltip .row .val { color: var(--text); font-weight: 600; }
+.tooltip .row .val.gold { color: var(--gold); }
+.tooltip .row .val.cyan { color: var(--cyan); }
+.tooltip .row .val.red { color: var(--red); }
+.tooltip .row .val.blue { color: var(--blue); }
+
+.tooltip .sub {
+  color: var(--muted);
+  font-size: 10.5px;
+  margin: 1px 0 3px;
+}
+
+.tooltip hr {
+  border: 0;
+  border-top: 1px solid var(--grid);
+  margin: 5px 0;
+}
+
+.tooltip .hint {
+  margin-top: 5px;
+  color: #6b7380;
+  font-size: 10px;
+}
+
+.controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 4px 14px;
+}
+
+.btn-reset {
+  flex: 0 0 auto;
+  appearance: none;
+  background: #151b26;
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.btn-reset:hover { background: #1f2a22; }
+.btn-reset:active { background: #2a2416; }
+.btn-reset:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.slider-block { flex: 1 1 auto; min-width: 0; }
+
+.slider { padding: 2px 2px 0; }
+
+.slider-track {
+  position: relative;
+  height: 26px;
+  background: var(--panel);
+  border: 1px solid var(--grid);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.slider-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(240, 193, 75, 0.16);
+  border-left: 1px solid var(--gold);
+  border-right: 1px solid var(--gold);
+  cursor: grab;
+  min-width: 12px;
+}
+
+.slider-range.grabbing { cursor: grabbing; }
+
+.handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  padding: 0;
+  border: 0;
+  background: var(--gold);
+  cursor: ew-resize;
+  border-radius: 0;
+}
+
+.handle.left { left: 0; }
+.handle.right { right: 0; }
+.handle:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+
+.slider-caption {
+  display: flex;
+  justify-content: center;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+footer {
+  flex: 0 0 auto;
+  padding: 4px 16px 8px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--footer);
+  white-space: pre-wrap;
+  border-top: 1px solid var(--grid);
+}
+
+.status {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--anno-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 4px;
+  z-index: 20;
+  max-width: 480px;
+}
+
+@media (max-width: 1100px) {
+  h1 { font-size: 16px; }
+  .koujing { font-size: 11px; }
+}
+
+@media (max-width: 800px) {
+  h1 { font-size: 15px; }
+  header.top { padding: 6px 10px 4px; }
+  .controls { padding-left: 8px; }
+}

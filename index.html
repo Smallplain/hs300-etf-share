@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>头部5只沪深300ETF合计规模 ÷ 沪深300指数计算用市值</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <h1 id="title">头部5只沪深300ETF合计规模  ÷  沪深300指数计算用市值</h1>
+      <div class="koujing" id="koujing">
+        <div class="koujing-pills">
+          <div class="pill">
+            <span class="k">数据截至日</span>
+            <span class="v" id="pill-asof">2026-11-10</span>
+          </div>
+          <div class="pill">
+            <span class="k">分母最新官方锚点日</span>
+            <span class="v" id="pill-anchor">2026-11-10</span>
+          </div>
+          <div class="pill warn">
+            <span class="v">计算用市值 ≠ 自由流通市值</span>
+            <span class="k">占比仅自 2024-12-31 起画</span>
+          </div>
+        </div>
+        <p class="basket" id="line-basket">固定篮子（按2026-11-06官方份额×单位净值）：510300华泰柏瑞 · 510310易方达 · 510330华夏 · 159919嘉实 · 515330天弘　　区间：2023-11-01至2026-11-10（A股交易日）</p>
+        <p class="formula" id="line-formula">公式：占比 = Σ(基金份额×单位净值) / 中证官方「指数市值」（计算用股本口径）。公开日频自由流通市值未能获得，未用总市值或流通市值替代。分母自2024-12-31起按官方时点锚定、期间按沪深300点位插值。</p>
+        <p class="note" id="line-note">计算用市值 ≠ 自由流通市值（计算用股本由自由流通量经分级靠档得到，也不是总市值或交易所流通市值）。占比仅自 2024-12-31 起画。</p>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="chart-wrap" id="chart-wrap">
+        <canvas id="chart"></canvas>
+        <div id="tooltip" class="tooltip" hidden></div>
+      </div>
+      <div class="controls">
+        <button type="button" id="btn-reset" class="btn-reset" title="恢复全窗口">回全窗口</button>
+        <div class="slider-block">
+          <div class="slider" id="slider">
+            <div class="slider-track" id="slider-track">
+              <div class="slider-range" id="slider-range">
+                <button type="button" class="handle left" id="handle-lo" aria-label="窗口起点"></button>
+                <button type="button" class="handle right" id="handle-hi" aria-label="窗口终点"></button>
+              </div>
+            </div>
+          </div>
+          <div class="slider-caption">
+            <span id="range-label">2023-11-01 — 2026-11-10</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer"></footer>
+    <div id="status" class="status" hidden></div>
+  </div>
+  <script src="js/app.js?v=20261111-1018"></script>
+</body>
+</html>

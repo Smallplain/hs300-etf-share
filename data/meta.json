@@ -1,0 +1,134 @@
+{
+  "title": "头部5只沪深300ETF合计规模  ÷  沪深300指数计算用市值",
+  "window": {
+    "start": "2023-11-01",
+    "end": "2026-11-10"
+  },
+  "as_of": "2026-11-10",
+  "first_official_anchor": "2024-12-31",
+  "latest_official_anchor": "2026-11-10",
+  "trading_days": 731,
+  "trading_days_in_window": 731,
+  "series_rows": 733,
+  "basket": {
+    "fixed": true,
+    "as_of_shares_nav": "2026-11-06",
+    "items": [
+      {
+        "code": "510300",
+        "short": "华泰柏瑞"
+      },
+      {
+        "code": "510310",
+        "short": "易方达"
+      },
+      {
+        "code": "510330",
+        "short": "华夏"
+      },
+      {
+        "code": "159919",
+        "short": "嘉实"
+      },
+      {
+        "code": "515330",
+        "short": "天弘"
+      }
+    ],
+    "line": "固定篮子（按2026-11-06官方份额×单位净值）：510300华泰柏瑞 · 510310易方达 · 510330华夏 · 159919嘉实 · 515330天弘",
+    "window_line": "区间：2023-11-01至2026-11-10（A股交易日）"
+  },
+  "formula": "公式：占比 = Σ(基金份额×单位净值) / 中证官方「指数市值」（计算用股本口径）。公开日频自由流通市值未能获得，未用总市值或流通市值替代。分母自2024-12-31起按官方时点锚定、期间按沪深300点位插值。",
+  "note": "计算用市值 ≠ 自由流通市值（计算用股本由自由流通量经分级靠档得到，也不是总市值或交易所流通市值）。占比仅自 2024-12-31 起画。",
+  "gap_note": "2023-11-01 至 2024-12-30\n无公开官方计算用市值时点，\n占比不绘制（青色为合计规模）。",
+  "footer": "数据来源（Asia/Shanghai，提取于2026-11-11 08:42 CST (Asia/Shanghai)）：上交所ETF份额 query.sse.com.cn · 深交所基金规模 szse.cn/api/report/ShowReport · 单位净值 天天基金/东方财富 · 沪深300收盘 中证官网 perf/index-perf · 上证综指 东方财富K线。\n计算用市值：中证指数单张（oss-ch.csindex.com.cn factsheet，含Wayback历史稿；口径=计算用股本）及官网 API index-feature/000300 的 calMkvSum（2026-11-10=231,085.34亿元）。插值校验：2026-10-30官方226,820亿元按点位推至2026-11-10得231,009亿元，与官方偏差-0.03%。\n指数再基准以2023-11-01收盘=100。510310于2024-09-20份额折算，规模按当日份额×净值，连续可比。非持牌投资建议。制图时间：2026-11-11 08:45:30 UTC+08:00。",
+  "retrieved": "2026-11-11 08:42 CST (Asia/Shanghai)",
+  "built_at": "2026-11-11 08:45:30 UTC+08:00",
+  "official_anchors": [
+    {
+      "date": "2024-12-31",
+      "calc_mkv_yi": 206152.0,
+      "ratio_pct": 4.552615
+    },
+    {
+      "date": "2025-01-27",
+      "calc_mkv_yi": 199862.0,
+      "ratio_pct": 4.616094
+    },
+    {
+      "date": "2025-05-30",
+      "calc_mkv_yi": 201724.0,
+      "ratio_pct": 4.987763
+    },
+    {
+      "date": "2025-06-30",
+      "calc_mkv_yi": 208403.0,
+      "ratio_pct": 4.879595
+    },
+    {
+      "date": "2025-07-31",
+      "calc_mkv_yi": 216251.0,
+      "ratio_pct": 4.800934
+    },
+    {
+      "date": "2026-01-30",
+      "calc_mkv_yi": 256839.0,
+      "ratio_pct": 2.26981
+    },
+    {
+      "date": "2026-02-27",
+      "calc_mkv_yi": 257074.0,
+      "ratio_pct": 2.190669
+    },
+    {
+      "date": "2026-03-31",
+      "calc_mkv_yi": 242963.0,
+      "ratio_pct": 2.17337
+    },
+    {
+      "date": "2026-10-30",
+      "calc_mkv_yi": 226820.0,
+      "ratio_pct": 1.607811
+    },
+    {
+      "date": "2026-11-10",
+      "calc_mkv_yi": 231085.34,
+      "ratio_pct": 1.886824368252378
+    }
+  ],
+  "labels": {
+    "ratio": "占比（分母=官方计算用市值）",
+    "aum": "头部5只合计规模（左全样本）",
+    "official": "官方计算用市值时点（未插值）",
+    "sse": "上证综指（000001）",
+    "csi": "沪深300（000300）",
+    "y_ratio": "占比（%）",
+    "y_aum": "合计基金规模（亿元，全样本）",
+    "y_index": "再基准=100\n（2023-11-01）"
+  },
+  "oos_check": {
+    "date": "2026-11-10",
+    "pred_yi": 231009.24104880192,
+    "official_yi": 231085.34,
+    "err_pct": -0.03293110294148185,
+    "in_window_anchor": false
+  },
+  "denom_flag_values": [
+    "official",
+    "interpolated",
+    "pre_first_official"
+  ],
+  "source": "database",
+  "latest_trade_date": "2026-11-10",
+  "latest_ratio_pct": 1.886824368252378,
+  "latest_denom_flag": "official",
+  "latest_calc_mkv_yi": 231085.34,
+  "latest_anchor_date": "2026-11-10",
+  "latest_aum_sum_yi": 4360.17450657886,
+  "window_denom_flag_counts": {
+    "pre_first_official": 284,
+    "official": 10,
+    "interpolated": 439
+  },
+  "ratio_from": "2024-12-31"
+}
