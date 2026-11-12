@@ -2,14 +2,14 @@
   "title": "头部5只沪深300ETF合计规模  ÷  沪深300指数计算用市值",
   "window": {
     "start": "2023-11-01",
-    "end": "2026-11-10"
+    "end": "2026-11-11"
   },
-  "as_of": "2026-11-10",
+  "as_of": "2026-11-11",
   "first_official_anchor": "2024-12-31",
-  "latest_official_anchor": "2026-11-10",
+  "latest_official_anchor": "2026-11-11",
   "trading_days": 731,
   "trading_days_in_window": 731,
-  "series_rows": 733,
+  "series_rows": 734,
   "basket": {
     "fixed": true,
     "as_of_shares_nav": "2026-11-06",
@@ -36,7 +36,7 @@
       }
     ],
     "line": "固定篮子（按2026-11-06官方份额×单位净值）：510300华泰柏瑞 · 510310易方达 · 510330华夏 · 159919嘉实 · 515330天弘",
-    "window_line": "区间：2023-11-01至2026-11-10（A股交易日）"
+    "window_line": "区间：2023-11-01至2026-11-11（A股交易日）"
   },
   "formula": "公式：占比 = Σ(基金份额×单位净值) / 中证官方「指数市值」（计算用股本口径）。公开日频自由流通市值未能获得，未用总市值或流通市值替代。分母自2024-12-31起按官方时点锚定、期间按沪深300点位插值。",
   "note": "计算用市值 ≠ 自由流通市值（计算用股本由自由流通量经分级靠档得到，也不是总市值或交易所流通市值）。占比仅自 2024-12-31 起画。",
@@ -94,6 +94,11 @@
       "date": "2026-11-10",
       "calc_mkv_yi": 231085.34,
       "ratio_pct": 1.886824368252378
+    },
+    {
+      "date": "2026-11-11",
+      "calc_mkv_yi": 232035.16,
+      "ratio_pct": 1.875096758365634
     }
   ],
   "labels": {
@@ -119,15 +124,18 @@
     "pre_first_official"
   ],
   "source": "database",
-  "latest_trade_date": "2026-11-10",
-  "latest_ratio_pct": 1.886824368252378,
+  "latest_trade_date": "2026-11-11",
+  "latest_ratio_pct": 1.875096758365634,
   "latest_denom_flag": "official",
-  "latest_calc_mkv_yi": 231085.34,
-  "latest_anchor_date": "2026-11-10",
-  "latest_aum_sum_yi": 4360.17450657886,
+  "latest_calc_mkv_yi": 232035.16,
+  "latest_anchor_date": "2026-11-11",
+  "latest_aum_sum_yi": 4350.883763428512,
+  "latest_prev_date": "2026-11-10",
+  "latest_ratio_pct_chg": -0.01172760988674404,
+  "latest_aum_sum_yi_chg": -9.290743150348135,
   "window_denom_flag_counts": {
     "pre_first_official": 284,
-    "official": 10,
+    "official": 11,
     "interpolated": 439
   },
   "ratio_from": "2024-12-31"
