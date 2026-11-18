@@ -40,19 +40,23 @@
     { code: "515330", short: "天弘", key: "aum_515330_yi" },
   ];
 
-  const INDEX_STORAGE_KEY = "hs300-etf-share:index-checks";
-  const INDEX_SCALE_RATIO = 3;
-  const DEFAULT_INDEX_KEYS = ["sse_comp", "csi300"];
-  const INDEX_DEFS = [
-    { key: "sse_comp", label: "上证综指", group: "大盘", color: C.red, css: "red" },
-    { key: "csi300", label: "沪深300", group: "大盘", color: C.blue, css: "blue" },
-    { key: "idx_semiconductor", label: "半导体", group: "板块", color: C.semiconductor, css: "semiconductor" },
-    { key: "idx_cpo", label: "CPO", group: "板块", color: C.cpo, css: "cpo" },
-    { key: "idx_bank", label: "银行", group: "板块", color: C.bank, css: "bank" },
-    { key: "idx_baijiu", label: "白酒", group: "板块", color: C.baijiu, css: "baijiu" },
-    { key: "idx_new_energy", label: "新能源", group: "板块", color: C.newEnergy, css: "new-energy" },
+  const MARKET_STORAGE_KEY = "hs300-etf-share:mkt-checks";
+  const SECTOR_STORAGE_KEY = "hs300-etf-share:sec-checks";
+  const MARKET_DEFS = [
+    { key: "sse_comp", label: "上证综指", color: C.red, css: "red" },
+    { key: "csi300", label: "沪深300", color: C.blue, css: "blue" },
   ];
-  const INDEX_DEF_MAP = Object.fromEntries(INDEX_DEFS.map((d) => [d.key, d]));
+  const SECTOR_DEFS = [
+    { key: "idx_semiconductor", label: "半导体", color: C.semiconductor, css: "semiconductor" },
+    { key: "idx_cpo", label: "CPO", color: C.cpo, css: "cpo" },
+    { key: "idx_bank", label: "银行", color: C.bank, css: "bank" },
+    { key: "idx_baijiu", label: "白酒", color: C.baijiu, css: "baijiu" },
+    { key: "idx_new_energy", label: "新能源", color: C.newEnergy, css: "new-energy" },
+  ];
+  const DEFAULT_MARKET_KEYS = MARKET_DEFS.map((d) => d.key);
+  const DEFAULT_SECTOR_KEYS = SECTOR_DEFS.map((d) => d.key);
+  const MARKET_DEF_MAP = Object.fromEntries(MARKET_DEFS.map((d) => [d.key, d]));
+  const SECTOR_DEF_MAP = Object.fromEntries(SECTOR_DEFS.map((d) => [d.key, d]));
 
   let meta = null;
   let rows = [];
@@ -74,7 +78,8 @@
   let raf = 0;
 
   let lastPt = null;
-  let checkedIndexKeys = DEFAULT_INDEX_KEYS.slice();
+  let checkedMarketKeys = DEFAULT_MARKET_KEYS.slice();
+  let checkedSectorKeys = DEFAULT_SECTOR_KEYS.slice();
 
   const ptr = {
     down: false,
@@ -102,7 +107,8 @@
     get handleHi() { return document.getElementById("handle-hi"); },
     get rangeLabel() { return document.getElementById("range-label"); },
     get status() { return document.getElementById("status"); },
-    get picker() { return document.getElementById("index-picker"); },
+    get mktPicker() { return document.getElementById("mkt-picker"); },
+    get secPicker() { return document.getElementById("sec-picker"); },
   };
 
   function parseDay(s) {
@@ -134,6 +140,12 @@
 
   function fmtPct(v, d) {
     return v == null ? "—" : `${v.toFixed(d)}%`;
+  }
+
+  function fmtSignedPct(v, d) {
+    if (v == null) return "—";
+    const sign = v > 0 ? "+" : "";
+    return `${sign}${v.toFixed(d)}%`;
   }
 
   function fmtNum(v, d) {
@@ -436,13 +448,15 @@
 
   function hitArea(pt) {
     if (!layout) return "blank";
-    const { top, mid, bot, plot } = layout;
+    const { top, mid, mkt, sec, plot } = layout;
     if (pt.x >= plot.x && pt.x <= plot.x + plot.w) {
       if (pt.y >= top.y && pt.y <= top.y + top.h) return "plot-top";
       if (mid && pt.y >= mid.y && pt.y <= mid.y + mid.h) return "plot-mid";
-      if (pt.y >= bot.y && pt.y <= bot.y + bot.h) return "plot-bot";
-      if (pt.y > top.y + top.h && mid && pt.y < mid.y) return "gap";
-      if (mid && pt.y > mid.y + mid.h && pt.y < bot.y) return "gap";
+      if (mkt && pt.y >= mkt.y && pt.y <= mkt.y + mkt.h) return "plot-mkt";
+      if (sec && pt.y >= sec.y && pt.y <= sec.y + sec.h) return "plot-sec";
+      if (mid && pt.y > top.y + top.h && pt.y < mid.y) return "gap";
+      if (mkt && mid && pt.y > mid.y + mid.h && pt.y < mkt.y) return "gap";
+      if (sec && mkt && pt.y > mkt.y + mkt.h && pt.y < sec.y) return "gap";
     }
     const inCanvas = pt.x >= 0 && pt.y >= 0 && pt.x <= layout.w && pt.y <= layout.h;
     return inCanvas ? "margin" : "blank";
@@ -450,28 +464,38 @@
 
   function inDateStrip(pt) {
     const a = hitArea(pt);
-    return a === "plot-top" || a === "plot-mid" || a === "plot-bot" || a === "gap";
+    return a === "plot-top" || a === "plot-mid" || a === "plot-mkt" || a === "plot-sec" || a === "gap";
   }
 
   function computeLayout(w, h) {
-    const left = 60, right = 64, topPad = 6, gap = 10, xh = 20, botPad = 2;
-    const innerH = Math.max(90, h - topPad - botPad - xh - gap * 2);
-    // 上图略高于中、下图；X 轴只出现在最底部
-    const unit = innerH / (1.24 + 1 + 1);
-    const topH = Math.floor(unit * 1.24);
-    const midH = Math.floor(unit * 1.0);
-    const botH = innerH - topH - midH;
+    const left = 64, right = 64, topPad = 6, gap = 8, xh = 20, botPad = 2;
+    const pickerH = 28;
+    const pickerGap = 2 + pickerH + 4;
+    const pickerBottom = 2 + pickerH;
+    const innerH = Math.max(90, h - topPad - botPad - xh - gap * 2 - pickerGap - pickerBottom);
+    // 上图略高，中图略矮；大盘与板块分图等高。勾选条占在图间空隙，不挡住读数。
+    const unit = innerH / (1.18 + 0.84 + 0.96 + 0.96);
+    const topH = Math.floor(unit * 1.18);
+    const midH = Math.floor(unit * 0.84);
+    const mktH = Math.floor(unit * 0.96);
+    const secH = innerH - topH - midH - mktH;
     const plotW = Math.max(40, w - left - right);
-    const top = { x: left, y: topPad, w: plotW, h: Math.max(36, topH) };
-    const mid = { x: left, y: top.y + top.h + gap, w: plotW, h: Math.max(36, midH) };
-    const bot = { x: left, y: mid.y + mid.h + gap, w: plotW, h: Math.max(36, botH) };
-    return { w, h, left, right, top, mid, bot, plot: { x: left, y: top.y, w: plotW, h: 0 }, xAxisY: bot.y + bot.h };
+    const top = { x: left, y: topPad, w: plotW, h: Math.max(32, topH) };
+    const mid = { x: left, y: top.y + top.h + gap, w: plotW, h: Math.max(32, midH) };
+    const mkt = { x: left, y: mid.y + mid.h + gap, w: plotW, h: Math.max(32, mktH) };
+    const mktPicker = { x: left, y: mkt.y + mkt.h + 2, w: plotW, h: pickerH };
+    const sec = { x: left, y: mktPicker.y + mktPicker.h + 4, w: plotW, h: Math.max(32, secH) };
+    const secPicker = { x: left, y: sec.y + sec.h + 2, w: plotW, h: pickerH };
+    return {
+      w, h, left, right, top, mid, mkt, sec, mktPicker, secPicker,
+      plot: { x: left, y: top.y, w: plotW, h: 0 },
+      xAxisY: secPicker.y + secPicker.h,
+    };
   }
 
   function visibleExtrema() {
     const [a0, b0] = visibleSlice();
     let rMin = Infinity, rMax = -Infinity, aMax = 0, aMin = Infinity;
-    let iMin = Infinity, iMax = -Infinity;
     let tMax = 0, tMin = Infinity;
     let anyR = false;
     for (let i = a0; i <= b0; i++) {
@@ -489,14 +513,6 @@
         rMin = Math.min(rMin, r.ratio_pct);
         rMax = Math.max(rMax, r.ratio_pct);
         anyR = true;
-      }
-      if (r.sse_rebased != null) {
-        iMin = Math.min(iMin, r.sse_rebased);
-        iMax = Math.max(iMax, r.sse_rebased);
-      }
-      if (r.csi_rebased != null) {
-        iMin = Math.min(iMin, r.csi_rebased);
-        iMax = Math.max(iMax, r.csi_rebased);
       }
     }
     if (!anyR) {
@@ -517,20 +533,13 @@
     const aLo = 0;
     const aHi = aMax * 1.22;
 
-    if (!Number.isFinite(iMin) || !Number.isFinite(iMax)) { iMin = 90; iMax = 140; }
-    if (iMax <= iMin) { iMin -= 2; iMax += 2; }
-    const iPad = (iMax - iMin) * 0.16;
-    iMin -= iPad;
-    iMax += iPad;
-
     const tLo = 0;
     const tHi = (tMax > 0 ? tMax : 1) * 1.18;
 
-    return { rMin, rMax, aLo, aHi, iMin, iMax, tLo, tHi };
+    return { rMin, rMax, aLo, aHi, tLo, tHi };
   }
 
-  function effectiveIndexKeys(keys) {
-    const allowed = new Set(INDEX_DEFS.map((d) => d.key));
+  function effectiveKeys(keys, allowed, fallback) {
     const out = [];
     const seen = new Set();
     for (const k of keys || []) {
@@ -538,181 +547,166 @@
       seen.add(k);
       out.push(k);
     }
-    return out.length ? out : DEFAULT_INDEX_KEYS.slice();
+    return out.length ? out : fallback.slice();
   }
 
-  function loadIndexChecks() {
+  function loadChecks(storageKey, allowed, fallback) {
     try {
-      const raw = localStorage.getItem(INDEX_STORAGE_KEY);
-      if (raw == null) return DEFAULT_INDEX_KEYS.slice();
-      return effectiveIndexKeys(JSON.parse(raw));
+      const raw = localStorage.getItem(storageKey);
+      if (raw == null) return fallback.slice();
+      return effectiveKeys(JSON.parse(raw), allowed, fallback);
     } catch {
-      return DEFAULT_INDEX_KEYS.slice();
+      return fallback.slice();
     }
   }
 
-  function saveIndexChecks(keys) {
-    const eff = effectiveIndexKeys(keys);
-    try { localStorage.setItem(INDEX_STORAGE_KEY, JSON.stringify(eff)); } catch { /* ignore quota */ }
+  function saveChecks(storageKey, keys, allowed, fallback) {
+    const eff = effectiveKeys(keys, allowed, fallback);
+    try { localStorage.setItem(storageKey, JSON.stringify(eff)); } catch { /* ignore quota */ }
     return eff;
   }
 
-  function selectedIndexKeys() {
-    return effectiveIndexKeys(checkedIndexKeys);
+  function selectedMarketKeys() {
+    return effectiveKeys(checkedMarketKeys, new Set(DEFAULT_MARKET_KEYS), DEFAULT_MARKET_KEYS);
   }
 
-  function seriesVisibleRange(key, i0, i1) {
-    let lo = Infinity, hi = -Infinity;
-    for (let i = i0; i <= i1; i++) {
-      if (times[i] < view0 || times[i] > view1) continue;
-      const v = rows[i][key];
-      if (v != null) {
-        lo = Math.min(lo, v);
-        hi = Math.max(hi, v);
-      }
-    }
-    if (!Number.isFinite(lo)) return null;
-    return { lo, hi };
+  function selectedSectorKeys() {
+    return effectiveKeys(checkedSectorKeys, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS);
   }
 
-  function groupIndexSeries(keys, i0, i1) {
-    const ranked = [];
-    const missing = [];
-    for (const key of keys) {
-      const r = seriesVisibleRange(key, i0, i1);
-      if (!r) missing.push(key);
-      else ranked.push({ key, lo: r.lo, hi: r.hi, mid: Math.sqrt(Math.max(r.lo, 1e-9) * Math.max(r.hi, 1e-9)) });
-    }
-    ranked.sort((a, b) => a.mid - b.mid);
-    const groups = [];
-    for (const it of ranked) {
-      if (!groups.length) {
-        groups.push({ keys: [it.key], lo: it.lo, hi: it.hi });
-        continue;
-      }
-      const g = groups[groups.length - 1];
-      const nlo = Math.min(g.lo, it.lo);
-      const nhi = Math.max(g.hi, it.hi);
-      if (nlo > 0 && nhi / nlo <= INDEX_SCALE_RATIO) {
-        g.keys.push(it.key);
-        g.lo = nlo;
-        g.hi = nhi;
-      } else {
-        groups.push({ keys: [it.key], lo: it.lo, hi: it.hi });
-      }
-    }
-    if (missing.length) {
-      if (groups.length) groups[0].keys.push(...missing);
-      else groups.push({ keys: missing, lo: 0, hi: 1 });
-    }
-    if (!groups.length) {
-      groups.push({ keys: DEFAULT_INDEX_KEYS.slice(), lo: 3000, hi: 5000 });
-    }
-    return groups;
-  }
-
-  function padIndexRange(lo, hi) {
-    if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = 3000; hi = 5000; }
+  function padRange(lo, hi, fallbackLo, fallbackHi) {
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = fallbackLo; hi = fallbackHi; }
     if (hi <= lo) { lo -= 2; hi += 2; }
     const pad = (hi - lo) * 0.16;
     return { lo: lo - pad, hi: hi + pad };
   }
 
-  function buildIndexFacets(botRect, i0, i1) {
-    const keys = selectedIndexKeys();
-    const groups = groupIndexSeries(keys, i0, i1);
-    const n = groups.length;
-    const gap = n > 1 ? 6 : 0;
-    const avail = botRect.h - gap * (n - 1);
-    const h = Math.max(24, Math.floor(avail / n));
-    const facets = [];
-    let y = botRect.y;
-    for (let i = 0; i < n; i++) {
-      const remain = n - i - 1;
-      const fh = (i === n - 1) ? (botRect.y + botRect.h - y) : h;
-      const rect = { x: botRect.x, y, w: botRect.w, h: Math.max(24, fh) };
-      const padded = padIndexRange(groups[i].lo, groups[i].hi);
-      const yfn = yMap(padded.lo, padded.hi, rect);
-      const tickN = n > 1 ? 3 : 5;
-      facets.push({
-        keys: groups[i].keys,
-        rect,
-        yfn,
-        lo: padded.lo,
-        hi: padded.hi,
-        ticks: niceTicks(padded.lo, padded.hi, tickN),
-      });
-      y += fh + gap;
+  function marketExtent(keys) {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < rows.length; i++) {
+      if (times[i] < view0 || times[i] > view1) continue;
+      for (const key of keys) {
+        const v = rows[i][key];
+        if (v != null) {
+          lo = Math.min(lo, v);
+          hi = Math.max(hi, v);
+        }
+      }
     }
-    return facets;
+    return padRange(lo, hi, 3000, 5000);
   }
 
-  function yIndexOf(key, value) {
-    if (!layout || value == null) return null;
-    const facets = layout.indexFacets || [];
-    const facet = facets.find((f) => f.keys.includes(key)) || facets[0];
-    if (!facet) return layout.yIndex ? layout.yIndex(value) : null;
-    return facet.yfn(value);
+  // 只把可视窗口内的点交给涨跌幅函数，避免沿用窗口外收盘价。
+  function computeSectorRel(keys) {
+    const rel = {};
+    const idx = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (times[i] >= view0 && times[i] <= view1) idx.push(i);
+    }
+    const scale = (typeof Hs300IndexScale !== "undefined") ? Hs300IndexScale : null;
+    for (const key of keys) {
+      const arr = new Array(rows.length).fill(null);
+      if (scale && scale.windowRelativeSeries) {
+        const windowVals = idx.map((i) => rows[i][key]);
+        const series = scale.windowRelativeSeries(windowVals);
+        for (let k = 0; k < idx.length; k++) arr[idx[k]] = series[k];
+      }
+      rel[key] = arr;
+    }
+    return rel;
+  }
+
+  function sectorExtent(rel, keys) {
+    let lo = Infinity, hi = -Infinity;
+    for (const key of keys) {
+      const arr = rel[key] || [];
+      for (let i = 0; i < arr.length; i++) {
+        const v = arr[i];
+        if (v != null) {
+          lo = Math.min(lo, v);
+          hi = Math.max(hi, v);
+        }
+      }
+    }
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = -5; hi = 5; }
+    lo = Math.min(lo, 0);
+    hi = Math.max(hi, 0);
+    return padRange(lo, hi, -5, 5);
+  }
+
+  function fillPicker(host, defs, checked, groupLabel, onChange) {
+    if (!host) return;
+    host.innerHTML = "";
+    const g = document.createElement("div");
+    g.className = "index-group";
+    const lab = document.createElement("span");
+    lab.className = "index-group-label";
+    lab.textContent = groupLabel;
+    g.appendChild(lab);
+    defs.forEach((d) => {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = d.key;
+      input.checked = checked.includes(d.key);
+      input.setAttribute("aria-label", d.label);
+      const sw = document.createElement("span");
+      sw.className = "index-swatch";
+      sw.style.background = d.color;
+      sw.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.textContent = d.label;
+      label.appendChild(input);
+      label.appendChild(sw);
+      label.appendChild(name);
+      input.addEventListener("change", onChange);
+      g.appendChild(label);
+    });
+    host.appendChild(g);
   }
 
   function bindIndexPicker() {
-    const host = el.picker;
-    if (!host) return;
-    host.innerHTML = "";
-    const groups = ["大盘", "板块"];
-    for (const gname of groups) {
-      const g = document.createElement("div");
-      g.className = "index-group";
-      const lab = document.createElement("span");
-      lab.className = "index-group-label";
-      lab.textContent = gname;
-      g.appendChild(lab);
-      INDEX_DEFS.filter((d) => d.group === gname).forEach((d) => {
-        const label = document.createElement("label");
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.value = d.key;
-        input.checked = checkedIndexKeys.includes(d.key);
-        input.setAttribute("aria-label", d.label);
-        const sw = document.createElement("span");
-        sw.className = "index-swatch";
-        sw.style.background = d.color;
-        sw.setAttribute("aria-hidden", "true");
-        const name = document.createElement("span");
-        name.textContent = d.label;
-        label.appendChild(input);
-        label.appendChild(sw);
-        label.appendChild(name);
-        input.addEventListener("change", onIndexCheckChange);
-        g.appendChild(label);
-      });
-      host.appendChild(g);
-    }
+    fillPicker(el.mktPicker, MARKET_DEFS, checkedMarketKeys, "大盘", onMarketCheckChange);
+    fillPicker(el.secPicker, SECTOR_DEFS, checkedSectorKeys, "板块", onSectorCheckChange);
   }
 
-  function onIndexCheckChange() {
-    const host = el.picker;
-    if (!host) return;
+  function applyPickerChange(host, defs, fallback, storageKey) {
+    if (!host) return fallback.slice();
+    const allowed = new Set(defs.map((d) => d.key));
     const picked = [];
     host.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
       if (inp.checked) picked.push(inp.value);
     });
-    const prev = checkedIndexKeys.slice();
+    let next;
     if (!picked.length) {
-      checkedIndexKeys = DEFAULT_INDEX_KEYS.slice();
+      next = fallback.slice();
       host.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
-        inp.checked = DEFAULT_INDEX_KEYS.includes(inp.value);
+        inp.checked = fallback.includes(inp.value);
       });
     } else {
-      checkedIndexKeys = effectiveIndexKeys(picked);
+      next = effectiveKeys(picked, allowed, fallback);
     }
-    // 顺序保持 INDEX_DEFS 定义序，避免图例跳动
-    const order = INDEX_DEFS.map((d) => d.key);
-    checkedIndexKeys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    if (JSON.stringify(checkedIndexKeys) !== JSON.stringify(prev) || !picked.length) {
-      saveIndexChecks(checkedIndexKeys);
-    }
+    const order = defs.map((d) => d.key);
+    next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    return saveChecks(storageKey, next, allowed, fallback);
+  }
+
+  function onMarketCheckChange() {
+    checkedMarketKeys = applyPickerChange(el.mktPicker, MARKET_DEFS, DEFAULT_MARKET_KEYS, MARKET_STORAGE_KEY);
     requestDraw();
+  }
+
+  function onSectorCheckChange() {
+    checkedSectorKeys = applyPickerChange(el.secPicker, SECTOR_DEFS, DEFAULT_SECTOR_KEYS, SECTOR_STORAGE_KEY);
+    requestDraw();
+  }
+
+  function positionPicker(node, slot) {
+    if (!node || !slot) return;
+    node.style.left = `${slot.x}px`;
+    node.style.top = `${slot.y}px`;
+    node.style.width = `${slot.w}px`;
+    node.style.height = `${slot.h}px`;
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -834,11 +828,11 @@
     ctx.clip();
   }
 
-  function strokeSeries(ctx, yfn, key, from, to, skipNull, startT) {
+  function strokeSeries(ctx, yfn, key, from, to, skipNull, startT, values) {
     ctx.beginPath();
     let open = false;
     for (let i = from; i <= to; i++) {
-      const v = rows[i][key];
+      const v = values ? values[i] : rows[i][key];
       if (v == null || (startT != null && times[i] < startT)) {
         open = false;
         continue;
@@ -1117,11 +1111,11 @@
         const alt = prefer === "sse_comp" ? "csi300" : "sse_comp";
         const key = row[prefer] != null ? prefer : alt;
         const val = row[key];
-        if (val == null) continue;
-        const y = yIndexOf(key, val);
+        if (val == null || !layout.yMarket) continue;
+        const y = layout.yMarket(val);
         if (y == null) continue;
         const m = measureAnno(ctx, lines, "plain");
-        const box = preferredAnnoBox(x, y, m, dx, dy, ha, layout.bot);
+        const box = preferredAnnoBox(x, y, m, dx, dy, ha, layout.mkt);
         pending.push({ x, y, lines, color: C.muted, style: "plain", box, m });
       }
     }
@@ -1144,7 +1138,7 @@
     ctx.fillText(text, bx + w / 2, y);
   }
 
-  function drawCrosshair(ctx, idx, yRatio, yAum, yIndex) {
+  function drawCrosshair(ctx, idx, yRatio, yAum) {
     if (idx == null || wheelHide) return;
     const t = times[idx];
     if (!dateVisible(t)) return;
@@ -1156,7 +1150,7 @@
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.moveTo(x, layout.top.y);
-    ctx.lineTo(x, layout.bot.y + layout.bot.h);
+    ctx.lineTo(x, layout.sec.y + layout.sec.h);
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -1167,27 +1161,38 @@
     if (row.aum_sum_yi != null) {
       dots.push({ y: yAum(row.aum_sum_yi), fill: C.cyan, panel: "top", tag: fmtNum(row.aum_sum_yi, 0), side: "right" });
     }
-    for (const def of INDEX_DEFS) {
-      if (!selectedIndexKeys().includes(def.key)) continue;
-      const v = row[def.key];
-      if (v == null) continue;
-      const y = yIndexOf(def.key, v);
-      if (y == null) continue;
-      const facet = (layout.indexFacets || []).find((f) => f.keys.includes(def.key));
-      dots.push({
-        y,
-        fill: def.color,
-        panel: "bot",
-        rect: facet ? facet.rect : layout.bot,
-        tag: v.toFixed(2),
-        side: "left",
-      });
-    }
     if (row.market_turnover_yi != null && layout.yTurnover) {
       dots.push({ y: layout.yTurnover(row.market_turnover_yi), fill: C.violet, panel: "mid", tag: fmtWanYi(row.market_turnover_yi, 2, 4), side: "left" });
     }
+    for (const def of MARKET_DEFS) {
+      if (!selectedMarketKeys().includes(def.key)) continue;
+      const v = row[def.key];
+      if (v == null || !layout.yMarket) continue;
+      dots.push({
+        y: layout.yMarket(v),
+        fill: def.color,
+        panel: "mkt",
+        rect: layout.mkt,
+        tag: fmtNum(v, 2),
+        side: "left",
+      });
+    }
+    const rel = layout.sectorRel || {};
+    for (const def of SECTOR_DEFS) {
+      if (!selectedSectorKeys().includes(def.key)) continue;
+      const v = rel[def.key] ? rel[def.key][idx] : null;
+      if (v == null || !layout.ySector) continue;
+      dots.push({
+        y: layout.ySector(v),
+        fill: def.color,
+        panel: "sec",
+        rect: layout.sec,
+        tag: fmtSignedPct(v, 2),
+        side: "left",
+      });
+    }
     for (const d of dots) {
-      const rect = d.rect || (d.panel === "top" ? layout.top : (d.panel === "mid" ? layout.mid : layout.bot));
+      const rect = d.rect || (d.panel === "top" ? layout.top : (d.panel === "mid" ? layout.mid : (d.panel === "mkt" ? layout.mkt : layout.sec)));
       if (d.y < rect.y - 2 || d.y > rect.y + rect.h + 2) continue;
       ctx.beginPath();
       ctx.arc(x, d.y, 3.3, 0, Math.PI * 2);
@@ -1206,20 +1211,16 @@
     if (!rubber) return;
     const x0 = Math.min(rubber.x0, rubber.x1);
     const x1 = Math.max(rubber.x0, rubber.x1);
-    const top = layout.top, mid = layout.mid, bot = layout.bot;
-    const xL = clamp(x0, top.x, top.x + top.w);
-    const xR = clamp(x1, top.x, top.x + top.w);
+    const panels = [layout.top, layout.mid, layout.mkt, layout.sec].filter(Boolean);
+    const xL = clamp(x0, layout.top.x, layout.top.x + layout.top.w);
+    const xR = clamp(x1, layout.top.x, layout.top.x + layout.top.w);
     if (xR - xL < 1) return;
     ctx.fillStyle = "rgba(240, 193, 75, 0.12)";
-    ctx.fillRect(xL, top.y, xR - xL, top.h);
-    if (mid) ctx.fillRect(xL, mid.y, xR - xL, mid.h);
-    ctx.fillRect(xL, bot.y, xR - xL, bot.h);
+    for (const r of panels) ctx.fillRect(xL, r.y, xR - xL, r.h);
     ctx.strokeStyle = "rgba(240, 193, 75, 0.7)";
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 2]);
-    ctx.strokeRect(xL, top.y, xR - xL, top.h);
-    if (mid) ctx.strokeRect(xL, mid.y, xR - xL, mid.h);
-    ctx.strokeRect(xL, bot.y, xR - xL, bot.h);
+    for (const r of panels) ctx.strokeRect(xL, r.y, xR - xL, r.h);
     ctx.setLineDash([]);
   }
 
@@ -1243,39 +1244,39 @@
     ctx.fillRect(0, 0, cssW, cssH);
 
     layout = computeLayout(cssW, cssH);
+    positionPicker(el.mktPicker, layout.mktPicker);
+    positionPicker(el.secPicker, layout.secPicker);
     const ext = visibleExtrema();
     const yRatio = yMap(ext.rMin, ext.rMax, layout.top);
     const yAum = yMap(ext.aLo, ext.aHi, layout.top);
     const yTurnover = yMap(ext.tLo, ext.tHi, layout.mid);
     const [i0, i1] = visibleSlice();
-    const indexFacets = buildIndexFacets(layout.bot, i0, i1);
-    const yIndex = indexFacets[0] ? indexFacets[0].yfn : yMap(3000, 5000, layout.bot);
+    const mktKeys = selectedMarketKeys();
+    const secKeys = selectedSectorKeys();
+    const sectorRel = computeSectorRel(secKeys);
+    const mktExt = marketExtent(mktKeys);
+    const secExt = sectorExtent(sectorRel, secKeys);
+    const yMarket = yMap(mktExt.lo, mktExt.hi, layout.mkt);
+    const ySector = yMap(secExt.lo, secExt.hi, layout.sec);
     layout.yRatio = yRatio;
     layout.yAum = yAum;
-    layout.yIndex = yIndex;
     layout.yTurnover = yTurnover;
-    layout.indexFacets = indexFacets;
+    layout.yMarket = yMarket;
+    layout.ySector = ySector;
+    layout.sectorRel = sectorRel;
 
     const rTicks = niceTicks(ext.rMin, ext.rMax, 6);
     const aTicks = niceTicks(ext.aLo, ext.aHi, 6);
     const tTicks = niceTicks(ext.tLo, ext.tHi, 4);
+    const mTicks = niceTicks(mktExt.lo, mktExt.hi, 5);
+    const sTicks = niceTicks(secExt.lo, secExt.hi, 5);
     const xt = xTicks();
     const labels = (meta && meta.labels) || {};
 
     drawPanelBg(ctx, layout.top);
     drawPanelBg(ctx, layout.mid);
-    drawPanelBg(ctx, layout.bot);
-    if (indexFacets.length > 1) {
-      ctx.strokeStyle = C.grid;
-      ctx.lineWidth = 1;
-      for (let fi = 1; fi < indexFacets.length; fi++) {
-        const y = indexFacets[fi].rect.y - 3;
-        ctx.beginPath();
-        ctx.moveTo(layout.bot.x, y);
-        ctx.lineTo(layout.bot.x + layout.bot.w, y);
-        ctx.stroke();
-      }
-    }
+    drawPanelBg(ctx, layout.mkt);
+    drawPanelBg(ctx, layout.sec);
     // right spine for AUM
     ctx.strokeStyle = C.grid;
     ctx.beginPath();
@@ -1285,12 +1286,23 @@
 
     drawHGrid(ctx, layout.top, rTicks, yRatio);
     drawHGrid(ctx, layout.mid, tTicks, yTurnover);
-    for (const facet of indexFacets) {
-      drawHGrid(ctx, facet.rect, facet.ticks, facet.yfn);
+    drawHGrid(ctx, layout.mkt, mTicks, yMarket);
+    drawHGrid(ctx, layout.sec, sTicks, ySector);
+    if (sTicks.some((v) => Math.abs(v) < 1e-9)) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(232, 237, 242, 0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const z = ySector(0);
+      ctx.moveTo(layout.sec.x, z);
+      ctx.lineTo(layout.sec.x + layout.sec.w, z);
+      ctx.stroke();
+      ctx.restore();
     }
     drawVGrid(ctx, layout.top.y, layout.top.y + layout.top.h, xt.ticks);
     drawVGrid(ctx, layout.mid.y, layout.mid.y + layout.mid.h, xt.ticks);
-    drawVGrid(ctx, layout.bot.y, layout.bot.y + layout.bot.h, xt.ticks);
+    drawVGrid(ctx, layout.mkt.y, layout.mkt.y + layout.mkt.h, xt.ticks);
+    drawVGrid(ctx, layout.sec.y, layout.sec.y + layout.sec.h, xt.ticks);
 
     if (dateVisible(ratioStartT)) {
       const x = xOf(ratioStartT);
@@ -1346,19 +1358,29 @@
     strokeSeries(ctx, yTurnover, "market_turnover_yi", i0, i1);
     ctx.restore();
 
-    // bottom series: 实际指数点位，从 2023-11-01 起画，不受占比起点限制
-    for (const facet of indexFacets) {
-      clipPlot(ctx, facet.rect);
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.lineWidth = 1.35;
-      for (const key of facet.keys) {
-        const def = INDEX_DEF_MAP[key];
-        ctx.strokeStyle = def ? def.color : C.text;
-        strokeSeries(ctx, facet.yfn, key, i0, i1);
-      }
-      ctx.restore();
+    // 大盘图：实际收盘点位，共轴；从窗口起点画，不受占比起点限制
+    clipPlot(ctx, layout.mkt);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 1.4;
+    for (const key of mktKeys) {
+      const def = MARKET_DEF_MAP[key];
+      ctx.strokeStyle = def ? def.color : C.text;
+      strokeSeries(ctx, yMarket, key, i0, i1);
     }
+    ctx.restore();
+
+    // 板块图：相对当前窗口起点的涨跌幅（%），窗口变化后按首个有效日重算
+    clipPlot(ctx, layout.sec);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 1.35;
+    for (const key of secKeys) {
+      const def = SECTOR_DEF_MAP[key];
+      ctx.strokeStyle = def ? def.color : C.text;
+      strokeSeries(ctx, ySector, key, i0, i1, false, null, sectorRel[key]);
+    }
+    ctx.restore();
 
     // y tick labels
     for (const v of rTicks) {
@@ -1370,12 +1392,15 @@
     for (const v of tTicks) {
       tickLabelY(ctx, fmtWanYi(v, 2, 2), C.violet, layout.mid.x - 6, yTurnover(v), "right");
     }
-    for (const facet of indexFacets) {
-      for (const v of facet.ticks) {
-        const y = facet.yfn(v);
-        if (y < facet.rect.y - 1 || y > facet.rect.y + facet.rect.h + 1) continue;
-        tickLabelY(ctx, fmtNum(v, 0), C.text, layout.bot.x - 6, y, "right");
-      }
+    for (const v of mTicks) {
+      const y = yMarket(v);
+      if (y < layout.mkt.y - 1 || y > layout.mkt.y + layout.mkt.h + 1) continue;
+      tickLabelY(ctx, fmtNum(v, 0), C.text, layout.mkt.x - 6, y, "right");
+    }
+    for (const v of sTicks) {
+      const y = ySector(v);
+      if (y < layout.sec.y - 1 || y > layout.sec.y + layout.sec.h + 1) continue;
+      tickLabelY(ctx, fmtSignedPct(v, 1), C.text, layout.sec.x - 6, y, "right");
     }
 
     ctx.save();
@@ -1406,14 +1431,22 @@
     ctx.fillText(labels.y_turnover || "成交额（万亿元）", 0, 0);
     ctx.restore();
     ctx.save();
-    ctx.translate(13, layout.bot.y + layout.bot.h / 2);
+    ctx.translate(13, layout.mkt.y + layout.mkt.h / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = C.text;
     ctx.font = `11px ${FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const yl = (labels.y_index || "指数点位").replace("\n", " ");
-    ctx.fillText(yl, 0, 0);
+    ctx.fillText((labels.y_index || "指数点位").replace("\n", " "), 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(13, layout.sec.y + layout.sec.h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = C.text;
+    ctx.font = `11px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText((labels.y_sector || "相对涨跌幅（%）").replace("\n", " "), 0, 0);
     ctx.restore();
 
     // x labels
@@ -1426,8 +1459,6 @@
       if (x < layout.plot.x - 4 || x > layout.plot.x + layout.plot.w + 4) continue;
       ctx.fillText(xt.labels[k], x, layout.xAxisY + 5);
     }
-
-    layout.botLegendBox = null;
 
     // mid legend
     {
@@ -1470,10 +1501,10 @@
     const reserved = [];
     if (legendBox) reserved.push(legendBox);
     if (layout.gapNoteBox) reserved.push(layout.gapNoteBox);
-    drawEvents(ctx, yRatio, yAum, yIndex, reserved);
+    drawEvents(ctx, yRatio, yAum, yMarket, reserved);
 
     const active = wheelHide ? null : (pinned != null ? pinned : hover);
-    drawCrosshair(ctx, active, yRatio, yAum, yIndex);
+    drawCrosshair(ctx, active, yRatio, yAum);
     drawRubber(ctx);
     updateTooltip(active);
   }
@@ -1490,15 +1521,28 @@
     return ` ${sign}${ch.toFixed(2)}%`;
   }
 
-  function indexTooltipRows(idx) {
+  function marketTooltipRows(idx) {
     const row = rows[idx];
     const prev = idx > 0 ? rows[idx - 1] : null;
-    return selectedIndexKeys().map((key) => {
-      const def = INDEX_DEF_MAP[key];
+    return selectedMarketKeys().map((key) => {
+      const def = MARKET_DEF_MAP[key];
       const v = row[key];
       const ch = fmtPctChg(v, prev ? prev[key] : null);
       const klass = def && def.css ? def.css : "";
       return `<div class="row"><span class="lab">${def ? def.label : key}</span><span class="val ${klass}">${fmtNum(v, 2)}${ch}</span></div>`;
+    }).join("");
+  }
+
+  function sectorTooltipRows(idx) {
+    const row = rows[idx];
+    const rel = (layout && layout.sectorRel) || {};
+    return selectedSectorKeys().map((key) => {
+      const def = SECTOR_DEF_MAP[key];
+      const pct = rel[key] ? rel[key][idx] : null;
+      const klass = def && def.css ? def.css : "";
+      const relTxt = fmtSignedPct(pct, 2);
+      const pt = fmtNum(row[key], 2);
+      return `<div class="row"><span class="lab">${def ? def.label : key}</span><span class="val ${klass}">${relTxt}<span class="subpt">（${pt}）</span></span></div>`;
     }).join("");
   }
 
@@ -1521,7 +1565,7 @@
       <div class="row"><span class="lab">分母性质</span><span class="val">${row.denom_flag || "—"}</span></div>
       <div class="row"><span class="lab">锚点日</span><span class="val">${row.anchor_date || "—"}</span></div>
       <div class="sub">${denomText(row)}</div>
-      ${indexTooltipRows(idx)}
+      ${marketTooltipRows(idx)}${sectorTooltipRows(idx)}
       ${row.market_turnover_yi != null ? `<div class="row"><span class="lab">两市成交额（万亿元）</span><span class="val violet">${fmtWanYi(row.market_turnover_yi, 2, 4)}</span></div>` : ""}
       <hr />
       ${parts}
@@ -1553,17 +1597,23 @@
     const seriesY = [];
     if (row.ratio_pct != null && t >= ratioStartT) seriesY.push(layout.yRatio(row.ratio_pct));
     if (row.aum_sum_yi != null) seriesY.push(layout.yAum(row.aum_sum_yi));
-    for (const key of selectedIndexKeys()) {
-      const y = yIndexOf(key, row[key]);
-      if (y != null) seriesY.push(y);
-    }
     if (row.market_turnover_yi != null && layout.yTurnover) seriesY.push(layout.yTurnover(row.market_turnover_yi));
+    for (const key of selectedMarketKeys()) {
+      const v = row[key];
+      if (v != null && layout.yMarket) seriesY.push(layout.yMarket(v));
+    }
+    const rel = layout.sectorRel || {};
+    for (const key of selectedSectorKeys()) {
+      const v = rel[key] ? rel[key][idx] : null;
+      if (v != null && layout.ySector) seriesY.push(layout.ySector(v));
+    }
     const midY = seriesY.length ? seriesY.reduce((a, b) => a + b, 0) / seriesY.length : layout.h / 2;
 
     const avoid = [];
     if (layout.legendBox) avoid.push(layout.legendBox);
     if (layout.midLegendBox) avoid.push(layout.midLegendBox);
-    if (layout.botLegendBox) avoid.push(layout.botLegendBox);
+    if (layout.mktPicker) avoid.push(layout.mktPicker);
+    if (layout.secPicker) avoid.push(layout.secPicker);
     if (layout.gapNoteBox) avoid.push(layout.gapNoteBox);
     if (layout.annoBoxes) {
       for (const b of layout.annoBoxes) avoid.push(b);
@@ -1581,9 +1631,10 @@
       layout.mid.y + 8,
       (layout.midLegendBox ? layout.midLegendBox.y + layout.midLegendBox.h + 10 : layout.mid.y + 40),
       layout.mid.y + layout.mid.h - tipH - 8,
-      layout.bot.y + 8,
-      (layout.botLegendBox ? layout.botLegendBox.y + layout.botLegendBox.h + 10 : layout.bot.y + 40),
-      layout.bot.y + layout.bot.h - tipH - 8,
+      layout.mkt.y + 8,
+      layout.mkt.y + layout.mkt.h - tipH - 8,
+      layout.sec.y + 8,
+      layout.sec.y + layout.sec.h - tipH - 8,
       wr.height - tipH - margin,
     ];
     const cands = [];
@@ -1684,7 +1735,7 @@
     if (ptr.down) {
       const dist = Math.hypot(pt.x - ptr.x0, pt.y - ptr.y0);
       if (!ptr.mode && dist >= DRAG_THRESH) {
-        if (ptr.area === "plot-top" || ptr.area === "plot-mid" || ptr.area === "plot-bot" || ptr.area === "gap") {
+        if (ptr.area === "plot-top" || ptr.area === "plot-mid" || ptr.area === "plot-mkt" || ptr.area === "plot-sec" || ptr.area === "gap") {
           ptr.mode = (ptr.shifted || ev.shiftKey) ? "pan" : "zoom";
         } else {
           ptr.mode = "ignore";
@@ -1929,7 +1980,8 @@
       full1 = times[times.length - 1];
       view0 = full0;
       view1 = full1;
-      checkedIndexKeys = loadIndexChecks();
+      checkedMarketKeys = loadChecks(MARKET_STORAGE_KEY, new Set(DEFAULT_MARKET_KEYS), DEFAULT_MARKET_KEYS);
+      checkedSectorKeys = loadChecks(SECTOR_STORAGE_KEY, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS);
       fillHeader();
       bindIndexPicker();
       bindChart();
@@ -1939,7 +1991,8 @@
       window.__share = {
         meta, rows, events,
         get view() { return [fmtDay(view0), fmtDay(view1)]; },
-        get indices() { return selectedIndexKeys(); },
+        get market() { return selectedMarketKeys(); },
+        get sectors() { return selectedSectorKeys(); },
       };
       draw();
     } catch (err) {
