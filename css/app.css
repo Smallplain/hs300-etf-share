@@ -15,6 +15,16 @@
   --bank: #98c379;
   --baijiu: #ff9f43;
   --new-energy: #c3e88d;
+  --securities: #de6e8c;
+  --coal: #a3845b;
+  --petrochemical: #c47c3a;
+  --nonferrous: #b8bec9;
+  --commercial-space: #7aa2f7;
+  --telecom: #2ec8c8;
+  --innovative-drug: #ef7ca8;
+  --computing: #9d7cd8;
+  --humanoid-robot: #6ee7b7;
+  --gold-sector: #f6d15f;
   --official: #ffffff;
   --anno-bg: #1a2230;
   --anno-border: #3a4558;
@@ -181,6 +191,16 @@ h1 {
 .tooltip .row .val.bank { color: var(--bank); }
 .tooltip .row .val.baijiu { color: var(--baijiu); }
 .tooltip .row .val.new-energy { color: var(--new-energy); }
+.tooltip .row .val.securities { color: var(--securities); }
+.tooltip .row .val.coal { color: var(--coal); }
+.tooltip .row .val.petrochemical { color: var(--petrochemical); }
+.tooltip .row .val.nonferrous { color: var(--nonferrous); }
+.tooltip .row .val.commercial-space { color: var(--commercial-space); }
+.tooltip .row .val.telecom { color: var(--telecom); }
+.tooltip .row .val.innovative-drug { color: var(--innovative-drug); }
+.tooltip .row .val.computing { color: var(--computing); }
+.tooltip .row .val.humanoid-robot { color: var(--humanoid-robot); }
+.tooltip .row .val.gold-sector { color: var(--gold-sector); }
 .tooltip .row .val .subpt {
   color: var(--muted);
   font-weight: 500;
@@ -367,6 +387,27 @@ h1 {
   border-radius: 1px;
   display: inline-block;
   flex: 0 0 auto;
+}
+
+.index-picker.is-wrap {
+  flex-wrap: wrap;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  white-space: normal;
+  align-content: center;
+  align-items: center;
+  gap: 2px 6px;
+}
+
+.index-picker.is-wrap .index-group {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  column-gap: 2px;
+  width: 100%;
+}
+
+.index-picker.is-wrap label {
+  padding: 2px 6px;
 }
 
 @media (max-width: 800px) {

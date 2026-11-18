@@ -19,6 +19,16 @@
     bank: "#98c379",
     baijiu: "#ff9f43",
     newEnergy: "#c3e88d",
+    securities: "#de6e8c",
+    coal: "#a3845b",
+    petrochemical: "#c47c3a",
+    nonferrous: "#b8bec9",
+    commercialSpace: "#7aa2f7",
+    telecom: "#2ec8c8",
+    innovativeDrug: "#ef7ca8",
+    computing: "#9d7cd8",
+    humanoidRobot: "#6ee7b7",
+    goldSector: "#f6d15f",
     annoBg: "#1a2230",
     annoBorder: "#3a4558",
     legendBg: "#151b26",
@@ -41,7 +51,7 @@
   ];
 
   const MARKET_STORAGE_KEY = "hs300-etf-share:mkt-checks";
-  const SECTOR_STORAGE_KEY = "hs300-etf-share:sec-checks";
+  const SECTOR_STORAGE_KEY = "hs300-etf-share:sec-checks-v15";
   const MARKET_DEFS = [
     { key: "sse_comp", label: "上证综指", color: C.red, css: "red" },
     { key: "csi300", label: "沪深300", color: C.blue, css: "blue" },
@@ -52,6 +62,16 @@
     { key: "idx_bank", label: "银行", color: C.bank, css: "bank" },
     { key: "idx_baijiu", label: "白酒", color: C.baijiu, css: "baijiu" },
     { key: "idx_new_energy", label: "新能源", color: C.newEnergy, css: "new-energy" },
+    { key: "idx_securities", label: "证券", color: C.securities, css: "securities" },
+    { key: "idx_coal", label: "煤炭", color: C.coal, css: "coal" },
+    { key: "idx_petrochemical", label: "石油石化", color: C.petrochemical, css: "petrochemical" },
+    { key: "idx_nonferrous", label: "有色金属", color: C.nonferrous, css: "nonferrous" },
+    { key: "idx_commercial_space", label: "商业航天", color: C.commercialSpace, css: "commercial-space" },
+    { key: "idx_telecom", label: "通信", color: C.telecom, css: "telecom" },
+    { key: "idx_innovative_drug", label: "创新药", color: C.innovativeDrug, css: "innovative-drug" },
+    { key: "idx_computing", label: "算力", color: C.computing, css: "computing" },
+    { key: "idx_humanoid_robot", label: "人形机器人", color: C.humanoidRobot, css: "humanoid-robot" },
+    { key: "idx_gold", label: "黄金", color: C.goldSector, css: "gold-sector" },
   ];
   const DEFAULT_MARKET_KEYS = MARKET_DEFS.map((d) => d.key);
   const DEFAULT_SECTOR_KEYS = SECTOR_DEFS.map((d) => d.key);
@@ -218,7 +238,7 @@
 
   function normalizeRow(r) {
     const flag = mapFlag(r.denom_flag);
-    return {
+    const row = {
       date: r.date,
       aum_510300_yi: num(r.aum_510300_yi),
       aum_510310_yi: num(r.aum_510310_yi),
@@ -236,12 +256,9 @@
       csi_rebased: num(r.csi_rebased ?? r["csi300_rebased_20231101=100"] ?? r.csi300_rebased_20231101 ?? r.csi_rebased_20231101),
       turnover_sum_yi: num(r.turnover_sum_yi),
       market_turnover_yi: num(r.market_turnover_yi),
-      idx_semiconductor: num(r.idx_semiconductor),
-      idx_cpo: num(r.idx_cpo),
-      idx_bank: num(r.idx_bank),
-      idx_baijiu: num(r.idx_baijiu),
-      idx_new_energy: num(r.idx_new_energy),
     };
+    for (const d of SECTOR_DEFS) row[d.key] = num(r[d.key]);
+    return row;
   }
 
   function normalizeDaily(daily) {
@@ -469,9 +486,10 @@
 
   function computeLayout(w, h) {
     const left = 64, right = 64, topPad = 6, gap = 8, xh = 20, botPad = 2;
-    const pickerH = 28;
-    const pickerGap = 2 + pickerH + 4;
-    const pickerBottom = 2 + pickerH;
+    const mktPickerH = 28;
+    const secPickerH = 52;
+    const pickerGap = 2 + mktPickerH + 4;
+    const pickerBottom = 2 + secPickerH;
     const innerH = Math.max(90, h - topPad - botPad - xh - gap * 2 - pickerGap - pickerBottom);
     // 上图略高，中图略矮；大盘与板块分图等高。勾选条占在图间空隙，不挡住读数。
     const unit = innerH / (1.18 + 0.84 + 0.96 + 0.96);
@@ -483,9 +501,9 @@
     const top = { x: left, y: topPad, w: plotW, h: Math.max(32, topH) };
     const mid = { x: left, y: top.y + top.h + gap, w: plotW, h: Math.max(32, midH) };
     const mkt = { x: left, y: mid.y + mid.h + gap, w: plotW, h: Math.max(32, mktH) };
-    const mktPicker = { x: left, y: mkt.y + mkt.h + 2, w: plotW, h: pickerH };
+    const mktPicker = { x: left, y: mkt.y + mkt.h + 2, w: plotW, h: mktPickerH };
     const sec = { x: left, y: mktPicker.y + mktPicker.h + 4, w: plotW, h: Math.max(32, secH) };
-    const secPicker = { x: left, y: sec.y + sec.h + 2, w: plotW, h: pickerH };
+    const secPicker = { x: left, y: sec.y + sec.h + 2, w: plotW, h: secPickerH };
     return {
       w, h, left, right, top, mid, mkt, sec, mktPicker, secPicker,
       plot: { x: left, y: top.y, w: plotW, h: 0 },
@@ -667,6 +685,7 @@
 
   function bindIndexPicker() {
     fillPicker(el.mktPicker, MARKET_DEFS, checkedMarketKeys, "大盘", onMarketCheckChange);
+    if (el.secPicker) el.secPicker.classList.add("is-wrap");
     fillPicker(el.secPicker, SECTOR_DEFS, checkedSectorKeys, "板块", onSectorCheckChange);
   }
 
