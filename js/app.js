@@ -120,6 +120,16 @@
     return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
 
+  // 库内成交额为亿元；图上按万亿元显示（值/10000）
+  const YI_PER_WAN_YI = 10000;
+  function fmtWanYi(v, minD, maxD) {
+    if (v == null) return "—";
+    const x = v / YI_PER_WAN_YI;
+    const min = minD == null ? 2 : minD;
+    const max = maxD == null ? 4 : maxD;
+    return x.toLocaleString("en-US", { minimumFractionDigits: min, maximumFractionDigits: max });
+  }
+
   function showStatus(msg) {
     const s = el.status;
     s.hidden = !msg;
@@ -192,6 +202,7 @@
       sse_rebased: num(r.sse_rebased ?? r["sse_rebased_20231101=100"] ?? r.sse_rebased_20231101),
       csi_rebased: num(r.csi_rebased ?? r["csi300_rebased_20231101=100"] ?? r.csi300_rebased_20231101 ?? r.csi_rebased_20231101),
       turnover_sum_yi: num(r.turnover_sum_yi),
+      market_turnover_yi: num(r.market_turnover_yi),
     };
   }
 
@@ -443,9 +454,9 @@
         aMax = Math.max(aMax, r.aum_sum_yi);
         aMin = Math.min(aMin, r.aum_sum_yi);
       }
-      if (r.turnover_sum_yi != null) {
-        tMax = Math.max(tMax, r.turnover_sum_yi);
-        tMin = Math.min(tMin, r.turnover_sum_yi);
+      if (r.market_turnover_yi != null) {
+        tMax = Math.max(tMax, r.market_turnover_yi);
+        tMin = Math.min(tMin, r.market_turnover_yi);
       }
       if (r.ratio_pct != null && times[i] >= ratioStartT) {
         rMin = Math.min(rMin, r.ratio_pct);
@@ -946,8 +957,8 @@
     if (row.csi_rebased != null) {
       dots.push({ y: yIndex(row.csi_rebased), fill: C.blue, panel: "midbot", tag: row.csi_rebased.toFixed(1), side: "left" });
     }
-    if (row.turnover_sum_yi != null && layout.yTurnover) {
-      dots.push({ y: layout.yTurnover(row.turnover_sum_yi), fill: C.violet, panel: "mid", tag: fmtNum(row.turnover_sum_yi, 1), side: "left" });
+    if (row.market_turnover_yi != null && layout.yTurnover) {
+      dots.push({ y: layout.yTurnover(row.market_turnover_yi), fill: C.violet, panel: "mid", tag: fmtWanYi(row.market_turnover_yi, 2, 4), side: "left" });
     }
     for (const d of dots) {
       const rect = d.panel === "top" ? layout.top : (d.panel === "mid" ? layout.mid : layout.bot);
@@ -1086,13 +1097,13 @@
     }
     ctx.restore();
 
-    // mid series: 五只篮子合计成交额（自窗口起点绘制，不受占比起点限制）
+    // mid series: 沪深两市全天成交额（自窗口起点绘制，不受占比起点限制）
     clipPlot(ctx, layout.mid);
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.strokeStyle = C.violet;
     ctx.lineWidth = 1.4;
-    strokeSeries(ctx, yTurnover, "turnover_sum_yi", i0, i1);
+    strokeSeries(ctx, yTurnover, "market_turnover_yi", i0, i1);
     ctx.restore();
 
     // bottom series
@@ -1127,7 +1138,7 @@
       tickLabelY(ctx, fmtNum(v, 0), C.cyan, layout.top.x + layout.top.w + 6, yAum(v), "left");
     }
     for (const v of tTicks) {
-      tickLabelY(ctx, fmtNum(v, 0), C.violet, layout.mid.x - 6, yTurnover(v), "right");
+      tickLabelY(ctx, fmtWanYi(v, 2, 2), C.violet, layout.mid.x - 6, yTurnover(v), "right");
     }
     for (const v of iTicks) {
       tickLabelY(ctx, v.toFixed(0), C.text, layout.bot.x - 6, yIndex(v), "right");
@@ -1158,7 +1169,7 @@
     ctx.font = `11px ${FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(labels.y_turnover || "成交额（亿元）", 0, 0);
+    ctx.fillText(labels.y_turnover || "成交额（万亿元）", 0, 0);
     ctx.restore();
     ctx.save();
     ctx.translate(13, layout.bot.y + layout.bot.h / 2);
@@ -1222,7 +1233,7 @@
     // mid legend
     {
       const items = [
-        { color: C.violet, text: labels.turnover || "五只ETF合计成交额" },
+        { color: C.violet, text: labels.turnover || "沪深两市成交额" },
       ];
       ctx.font = `11px ${FONT}`;
       const lineH = 16, padX = 8, padY = 5, iconW = 20;
@@ -1294,7 +1305,7 @@
       <div class="sub">${denomText(row)}</div>
       <div class="row"><span class="lab">上证综指</span><span class="val red">${fmtNum(row.sse_comp, 2)}（${row.sse_rebased != null ? row.sse_rebased.toFixed(2) : "—"}）</span></div>
       <div class="row"><span class="lab">沪深300</span><span class="val blue">${fmtNum(row.csi300, 2)}（${row.csi_rebased != null ? row.csi_rebased.toFixed(2) : "—"}）</span></div>
-      ${row.turnover_sum_yi != null ? `<div class="row"><span class="lab">合计成交额（亿元）</span><span class="val violet">${fmtNum(row.turnover_sum_yi, 2)}</span></div>` : ""}
+      ${row.market_turnover_yi != null ? `<div class="row"><span class="lab">两市成交额（万亿元）</span><span class="val violet">${fmtWanYi(row.market_turnover_yi, 2, 4)}</span></div>` : ""}
       <hr />
       ${parts}
       <div class="hint">${hint}</div>
@@ -1327,7 +1338,7 @@
     if (row.aum_sum_yi != null) seriesY.push(layout.yAum(row.aum_sum_yi));
     if (row.sse_rebased != null) seriesY.push(layout.yIndex(row.sse_rebased));
     if (row.csi_rebased != null) seriesY.push(layout.yIndex(row.csi_rebased));
-    if (row.turnover_sum_yi != null && layout.yTurnover) seriesY.push(layout.yTurnover(row.turnover_sum_yi));
+    if (row.market_turnover_yi != null && layout.yTurnover) seriesY.push(layout.yTurnover(row.market_turnover_yi));
     const midY = seriesY.length ? seriesY.reduce((a, b) => a + b, 0) / seriesY.length : layout.h / 2;
 
     const avoid = [];
