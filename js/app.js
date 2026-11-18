@@ -13,6 +13,7 @@
     red: "#e06c75",
     blue: "#61afef",
     official: "#ffffff",
+    violet: "#c678dd",
     annoBg: "#1a2230",
     annoBorder: "#3a4558",
     legendBg: "#151b26",
@@ -190,6 +191,7 @@
       csi300: num(r.csi300),
       sse_rebased: num(r.sse_rebased ?? r["sse_rebased_20231101=100"] ?? r.sse_rebased_20231101),
       csi_rebased: num(r.csi_rebased ?? r["csi300_rebased_20231101=100"] ?? r.csi300_rebased_20231101 ?? r.csi_rebased_20231101),
+      turnover_sum_yi: num(r.turnover_sum_yi),
     };
   }
 
@@ -396,11 +398,13 @@
 
   function hitArea(pt) {
     if (!layout) return "blank";
-    const { top, bot, plot } = layout;
+    const { top, mid, bot, plot } = layout;
     if (pt.x >= plot.x && pt.x <= plot.x + plot.w) {
       if (pt.y >= top.y && pt.y <= top.y + top.h) return "plot-top";
+      if (mid && pt.y >= mid.y && pt.y <= mid.y + mid.h) return "plot-mid";
       if (pt.y >= bot.y && pt.y <= bot.y + bot.h) return "plot-bot";
-      if (pt.y > top.y + top.h && pt.y < bot.y) return "gap";
+      if (pt.y > top.y + top.h && mid && pt.y < mid.y) return "gap";
+      if (mid && pt.y > mid.y + mid.h && pt.y < bot.y) return "gap";
     }
     const inCanvas = pt.x >= 0 && pt.y >= 0 && pt.x <= layout.w && pt.y <= layout.h;
     return inCanvas ? "margin" : "blank";
@@ -408,24 +412,29 @@
 
   function inDateStrip(pt) {
     const a = hitArea(pt);
-    return a === "plot-top" || a === "plot-bot" || a === "gap";
+    return a === "plot-top" || a === "plot-mid" || a === "plot-bot" || a === "gap";
   }
 
   function computeLayout(w, h) {
-    const left = 60, right = 64, topPad = 8, gap = 12, xh = 22, botPad = 4;
-    const innerH = Math.max(80, h - topPad - botPad - xh - gap);
-    const topH = Math.floor(innerH * (1.12 / 2.0));
-    const botH = innerH - topH;
+    const left = 60, right = 64, topPad = 6, gap = 10, xh = 20, botPad = 2;
+    const innerH = Math.max(90, h - topPad - botPad - xh - gap * 2);
+    // 上图略高于中、下图；X 轴只出现在最底部
+    const unit = innerH / (1.24 + 1 + 1);
+    const topH = Math.floor(unit * 1.24);
+    const midH = Math.floor(unit * 1.0);
+    const botH = innerH - topH - midH;
     const plotW = Math.max(40, w - left - right);
-    const top = { x: left, y: topPad, w: plotW, h: Math.max(40, topH) };
-    const bot = { x: left, y: topPad + top.h + gap, w: plotW, h: Math.max(40, botH) };
-    return { w, h, left, right, top, bot, plot: { x: left, y: top.y, w: plotW, h: 0 }, xAxisY: bot.y + bot.h };
+    const top = { x: left, y: topPad, w: plotW, h: Math.max(36, topH) };
+    const mid = { x: left, y: top.y + top.h + gap, w: plotW, h: Math.max(36, midH) };
+    const bot = { x: left, y: mid.y + mid.h + gap, w: plotW, h: Math.max(36, botH) };
+    return { w, h, left, right, top, mid, bot, plot: { x: left, y: top.y, w: plotW, h: 0 }, xAxisY: bot.y + bot.h };
   }
 
   function visibleExtrema() {
     const [a0, b0] = visibleSlice();
     let rMin = Infinity, rMax = -Infinity, aMax = 0, aMin = Infinity;
     let iMin = Infinity, iMax = -Infinity;
+    let tMax = 0, tMin = Infinity;
     let anyR = false;
     for (let i = a0; i <= b0; i++) {
       const r = rows[i];
@@ -433,6 +442,10 @@
       if (r.aum_sum_yi != null) {
         aMax = Math.max(aMax, r.aum_sum_yi);
         aMin = Math.min(aMin, r.aum_sum_yi);
+      }
+      if (r.turnover_sum_yi != null) {
+        tMax = Math.max(tMax, r.turnover_sum_yi);
+        tMin = Math.min(tMin, r.turnover_sum_yi);
       }
       if (r.ratio_pct != null && times[i] >= ratioStartT) {
         rMin = Math.min(rMin, r.ratio_pct);
@@ -472,7 +485,10 @@
     iMin -= iPad;
     iMax += iPad;
 
-    return { rMin, rMax, aLo, aHi, iMin, iMax };
+    const tLo = 0;
+    const tHi = (tMax > 0 ? tMax : 1) * 1.18;
+
+    return { rMin, rMax, aLo, aHi, iMin, iMax, tLo, tHi };
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -925,13 +941,16 @@
       dots.push({ y: yAum(row.aum_sum_yi), fill: C.cyan, panel: "top", tag: fmtNum(row.aum_sum_yi, 0), side: "right" });
     }
     if (row.sse_rebased != null) {
-      dots.push({ y: yIndex(row.sse_rebased), fill: C.red, panel: "bot", tag: row.sse_rebased.toFixed(1), side: "left" });
+      dots.push({ y: yIndex(row.sse_rebased), fill: C.red, panel: "midbot", tag: row.sse_rebased.toFixed(1), side: "left" });
     }
     if (row.csi_rebased != null) {
-      dots.push({ y: yIndex(row.csi_rebased), fill: C.blue, panel: "bot", tag: row.csi_rebased.toFixed(1), side: "left" });
+      dots.push({ y: yIndex(row.csi_rebased), fill: C.blue, panel: "midbot", tag: row.csi_rebased.toFixed(1), side: "left" });
+    }
+    if (row.turnover_sum_yi != null && layout.yTurnover) {
+      dots.push({ y: layout.yTurnover(row.turnover_sum_yi), fill: C.violet, panel: "mid", tag: fmtNum(row.turnover_sum_yi, 1), side: "left" });
     }
     for (const d of dots) {
-      const rect = d.panel === "top" ? layout.top : layout.bot;
+      const rect = d.panel === "top" ? layout.top : (d.panel === "mid" ? layout.mid : layout.bot);
       if (d.y < rect.y - 2 || d.y > rect.y + rect.h + 2) continue;
       ctx.beginPath();
       ctx.arc(x, d.y, 3.3, 0, Math.PI * 2);
@@ -950,17 +969,19 @@
     if (!rubber) return;
     const x0 = Math.min(rubber.x0, rubber.x1);
     const x1 = Math.max(rubber.x0, rubber.x1);
-    const top = layout.top, bot = layout.bot;
+    const top = layout.top, mid = layout.mid, bot = layout.bot;
     const xL = clamp(x0, top.x, top.x + top.w);
     const xR = clamp(x1, top.x, top.x + top.w);
     if (xR - xL < 1) return;
     ctx.fillStyle = "rgba(240, 193, 75, 0.12)";
     ctx.fillRect(xL, top.y, xR - xL, top.h);
+    if (mid) ctx.fillRect(xL, mid.y, xR - xL, mid.h);
     ctx.fillRect(xL, bot.y, xR - xL, bot.h);
     ctx.strokeStyle = "rgba(240, 193, 75, 0.7)";
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 2]);
     ctx.strokeRect(xL, top.y, xR - xL, top.h);
+    if (mid) ctx.strokeRect(xL, mid.y, xR - xL, mid.h);
     ctx.strokeRect(xL, bot.y, xR - xL, bot.h);
     ctx.setLineDash([]);
   }
@@ -989,18 +1010,22 @@
     const yRatio = yMap(ext.rMin, ext.rMax, layout.top);
     const yAum = yMap(ext.aLo, ext.aHi, layout.top);
     const yIndex = yMap(ext.iMin, ext.iMax, layout.bot);
+    const yTurnover = yMap(ext.tLo, ext.tHi, layout.mid);
     layout.yRatio = yRatio;
     layout.yAum = yAum;
     layout.yIndex = yIndex;
+    layout.yTurnover = yTurnover;
 
     const rTicks = niceTicks(ext.rMin, ext.rMax, 6);
     const aTicks = niceTicks(ext.aLo, ext.aHi, 6);
     const iTicks = niceTicks(ext.iMin, ext.iMax, 5);
+    const tTicks = niceTicks(ext.tLo, ext.tHi, 4);
     const xt = xTicks();
     const [i0, i1] = visibleSlice();
     const labels = (meta && meta.labels) || {};
 
     drawPanelBg(ctx, layout.top);
+    drawPanelBg(ctx, layout.mid);
     drawPanelBg(ctx, layout.bot);
     // right spine for AUM
     ctx.strokeStyle = C.grid;
@@ -1010,8 +1035,10 @@
     ctx.stroke();
 
     drawHGrid(ctx, layout.top, rTicks, yRatio);
+    drawHGrid(ctx, layout.mid, tTicks, yTurnover);
     drawHGrid(ctx, layout.bot, iTicks, yIndex);
     drawVGrid(ctx, layout.top.y, layout.top.y + layout.top.h, xt.ticks);
+    drawVGrid(ctx, layout.mid.y, layout.mid.y + layout.mid.h, xt.ticks);
     drawVGrid(ctx, layout.bot.y, layout.bot.y + layout.bot.h, xt.ticks);
 
     if (dateVisible(ratioStartT)) {
@@ -1059,6 +1086,15 @@
     }
     ctx.restore();
 
+    // mid series: 五只篮子合计成交额（自窗口起点绘制，不受占比起点限制）
+    clipPlot(ctx, layout.mid);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = C.violet;
+    ctx.lineWidth = 1.4;
+    strokeSeries(ctx, yTurnover, "turnover_sum_yi", i0, i1);
+    ctx.restore();
+
     // bottom series
     clipPlot(ctx, layout.bot);
     if (ext.iMin < 100 && ext.iMax > 100) {
@@ -1090,6 +1126,9 @@
     for (const v of aTicks) {
       tickLabelY(ctx, fmtNum(v, 0), C.cyan, layout.top.x + layout.top.w + 6, yAum(v), "left");
     }
+    for (const v of tTicks) {
+      tickLabelY(ctx, fmtNum(v, 0), C.violet, layout.mid.x - 6, yTurnover(v), "right");
+    }
     for (const v of iTicks) {
       tickLabelY(ctx, v.toFixed(0), C.text, layout.bot.x - 6, yIndex(v), "right");
     }
@@ -1111,6 +1150,15 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(labels.y_aum || "合计基金规模（亿元，全样本）", 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(13, layout.mid.y + layout.mid.h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = C.violet;
+    ctx.font = `11px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(labels.y_turnover || "成交额（亿元）", 0, 0);
     ctx.restore();
     ctx.save();
     ctx.translate(13, layout.bot.y + layout.bot.h / 2);
@@ -1148,6 +1196,42 @@
       const bx = layout.bot.x + 8;
       const by = layout.bot.y + 8;
       layout.botLegendBox = { x: bx, y: by, w: bw, h: bh };
+      roundRect(ctx, bx, by, bw, bh, 3);
+      ctx.fillStyle = "rgba(21, 27, 38, 0.9)";
+      ctx.fill();
+      ctx.strokeStyle = C.annoBorder;
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+      let ix = bx + padX;
+      items.forEach((it) => {
+        const iy = by + bh / 2;
+        ctx.strokeStyle = it.color;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ix, iy);
+        ctx.lineTo(ix + 14, iy);
+        ctx.stroke();
+        ctx.fillStyle = C.text;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(it.text, ix + iconW, iy);
+        ix += iconW + ctx.measureText(it.text).width + 14;
+      });
+    }
+
+    // mid legend
+    {
+      const items = [
+        { color: C.violet, text: labels.turnover || "五只ETF合计成交额" },
+      ];
+      ctx.font = `11px ${FONT}`;
+      const lineH = 16, padX = 8, padY = 5, iconW = 20;
+      const tw = items.reduce((s, it) => s + iconW + ctx.measureText(it.text).width + 14, 0);
+      const bw = tw + padX;
+      const bh = lineH + padY * 2 - 2;
+      const bx = layout.mid.x + 8;
+      const by = layout.mid.y + 8;
+      layout.midLegendBox = { x: bx, y: by, w: bw, h: bh };
       roundRect(ctx, bx, by, bw, bh, 3);
       ctx.fillStyle = "rgba(21, 27, 38, 0.9)";
       ctx.fill();
@@ -1210,6 +1294,7 @@
       <div class="sub">${denomText(row)}</div>
       <div class="row"><span class="lab">上证综指</span><span class="val red">${fmtNum(row.sse_comp, 2)}（${row.sse_rebased != null ? row.sse_rebased.toFixed(2) : "—"}）</span></div>
       <div class="row"><span class="lab">沪深300</span><span class="val blue">${fmtNum(row.csi300, 2)}（${row.csi_rebased != null ? row.csi_rebased.toFixed(2) : "—"}）</span></div>
+      ${row.turnover_sum_yi != null ? `<div class="row"><span class="lab">合计成交额（亿元）</span><span class="val violet">${fmtNum(row.turnover_sum_yi, 2)}</span></div>` : ""}
       <hr />
       ${parts}
       <div class="hint">${hint}</div>
@@ -1242,10 +1327,12 @@
     if (row.aum_sum_yi != null) seriesY.push(layout.yAum(row.aum_sum_yi));
     if (row.sse_rebased != null) seriesY.push(layout.yIndex(row.sse_rebased));
     if (row.csi_rebased != null) seriesY.push(layout.yIndex(row.csi_rebased));
+    if (row.turnover_sum_yi != null && layout.yTurnover) seriesY.push(layout.yTurnover(row.turnover_sum_yi));
     const midY = seriesY.length ? seriesY.reduce((a, b) => a + b, 0) / seriesY.length : layout.h / 2;
 
     const avoid = [];
     if (layout.legendBox) avoid.push(layout.legendBox);
+    if (layout.midLegendBox) avoid.push(layout.midLegendBox);
     if (layout.botLegendBox) avoid.push(layout.botLegendBox);
     if (layout.gapNoteBox) avoid.push(layout.gapNoteBox);
     if (layout.annoBoxes) {
@@ -1261,6 +1348,9 @@
       midY - tipH - 18,
       layout.top.y + 8,
       layout.top.y + layout.top.h - tipH - 8,
+      layout.mid.y + 8,
+      (layout.midLegendBox ? layout.midLegendBox.y + layout.midLegendBox.h + 10 : layout.mid.y + 40),
+      layout.mid.y + layout.mid.h - tipH - 8,
       layout.bot.y + 8,
       (layout.botLegendBox ? layout.botLegendBox.y + layout.botLegendBox.h + 10 : layout.bot.y + 40),
       layout.bot.y + layout.bot.h - tipH - 8,
@@ -1364,7 +1454,7 @@
     if (ptr.down) {
       const dist = Math.hypot(pt.x - ptr.x0, pt.y - ptr.y0);
       if (!ptr.mode && dist >= DRAG_THRESH) {
-        if (ptr.area === "plot-top" || ptr.area === "plot-bot" || ptr.area === "gap") {
+        if (ptr.area === "plot-top" || ptr.area === "plot-mid" || ptr.area === "plot-bot" || ptr.area === "gap") {
           ptr.mode = (ptr.shifted || ev.shiftKey) ? "pan" : "zoom";
         } else {
           ptr.mode = "ignore";
