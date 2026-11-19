@@ -557,7 +557,7 @@
     return { rMin, rMax, aLo, aHi, tLo, tHi };
   }
 
-  function effectiveKeys(keys, allowed, fallback) {
+  function effectiveKeys(keys, allowed, fallback, allowEmpty) {
     const out = [];
     const seen = new Set();
     for (const k of keys || []) {
@@ -565,21 +565,22 @@
       seen.add(k);
       out.push(k);
     }
-    return out.length ? out : fallback.slice();
+    if (out.length) return out;
+    return allowEmpty ? [] : fallback.slice();
   }
 
-  function loadChecks(storageKey, allowed, fallback) {
+  function loadChecks(storageKey, allowed, fallback, allowEmpty) {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw == null) return fallback.slice();
-      return effectiveKeys(JSON.parse(raw), allowed, fallback);
+      return effectiveKeys(JSON.parse(raw), allowed, fallback, allowEmpty);
     } catch {
       return fallback.slice();
     }
   }
 
-  function saveChecks(storageKey, keys, allowed, fallback) {
-    const eff = effectiveKeys(keys, allowed, fallback);
+  function saveChecks(storageKey, keys, allowed, fallback, allowEmpty) {
+    const eff = effectiveKeys(keys, allowed, fallback, allowEmpty);
     try { localStorage.setItem(storageKey, JSON.stringify(eff)); } catch { /* ignore quota */ }
     return eff;
   }
@@ -589,7 +590,7 @@
   }
 
   function selectedSectorKeys() {
-    return effectiveKeys(checkedSectorKeys, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS);
+    return effectiveKeys(checkedSectorKeys, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS, true);
   }
 
   function padRange(lo, hi, fallbackLo, fallbackHi) {
@@ -652,7 +653,7 @@
     return padRange(lo, hi, -5, 5);
   }
 
-  function fillPicker(host, defs, checked, groupLabel, onChange) {
+  function fillPicker(host, defs, checked, groupLabel, onChange, opts) {
     if (!host) return;
     host.innerHTML = "";
     const g = document.createElement("div");
@@ -661,6 +662,31 @@
     lab.className = "index-group-label";
     lab.textContent = groupLabel;
     g.appendChild(lab);
+    if (opts && opts.selectActions) {
+      const actions = document.createElement("span");
+      actions.className = "index-select-actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "index-select-btn";
+      const boxes = () => [...host.querySelectorAll('input[type="checkbox"]')];
+      const allOn = () => {
+        const list = boxes();
+        return list.length > 0 && list.every((inp) => inp.checked);
+      };
+      const syncToggle = () => {
+        const clear = allOn();
+        btn.textContent = clear ? "取消全选" : "全选";
+        btn.setAttribute("aria-label", clear ? "取消全选板块" : "全选板块");
+      };
+      btn.addEventListener("click", () => {
+        const on = !allOn();
+        boxes().forEach((inp) => { inp.checked = on; });
+        onChange();
+      });
+      actions.appendChild(btn);
+      g.appendChild(actions);
+      host._syncSelectToggle = syncToggle;
+    }
     defs.forEach((d) => {
       const label = document.createElement("label");
       const input = document.createElement("input");
@@ -681,16 +707,17 @@
       g.appendChild(label);
     });
     host.appendChild(g);
+    if (typeof host._syncSelectToggle === "function") host._syncSelectToggle();
   }
 
   function bindIndexPicker() {
     fillPicker(el.mktPicker, MARKET_DEFS, checkedMarketKeys, "大盘", onMarketCheckChange);
     if (el.secPicker) el.secPicker.classList.add("is-wrap");
-    fillPicker(el.secPicker, SECTOR_DEFS, checkedSectorKeys, "板块", onSectorCheckChange);
+    fillPicker(el.secPicker, SECTOR_DEFS, checkedSectorKeys, "板块", onSectorCheckChange, { selectActions: true });
   }
 
-  function applyPickerChange(host, defs, fallback, storageKey) {
-    if (!host) return fallback.slice();
+  function applyPickerChange(host, defs, fallback, storageKey, allowEmpty) {
+    if (!host) return allowEmpty ? [] : fallback.slice();
     const allowed = new Set(defs.map((d) => d.key));
     const picked = [];
     host.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
@@ -698,16 +725,20 @@
     });
     let next;
     if (!picked.length) {
-      next = fallback.slice();
-      host.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
-        inp.checked = fallback.includes(inp.value);
-      });
+      if (allowEmpty) {
+        next = [];
+      } else {
+        next = fallback.slice();
+        host.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+          inp.checked = fallback.includes(inp.value);
+        });
+      }
     } else {
-      next = effectiveKeys(picked, allowed, fallback);
+      next = effectiveKeys(picked, allowed, fallback, allowEmpty);
     }
     const order = defs.map((d) => d.key);
     next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    return saveChecks(storageKey, next, allowed, fallback);
+    return saveChecks(storageKey, next, allowed, fallback, allowEmpty);
   }
 
   function onMarketCheckChange() {
@@ -716,7 +747,8 @@
   }
 
   function onSectorCheckChange() {
-    checkedSectorKeys = applyPickerChange(el.secPicker, SECTOR_DEFS, DEFAULT_SECTOR_KEYS, SECTOR_STORAGE_KEY);
+    checkedSectorKeys = applyPickerChange(el.secPicker, SECTOR_DEFS, DEFAULT_SECTOR_KEYS, SECTOR_STORAGE_KEY, true);
+    if (el.secPicker && typeof el.secPicker._syncSelectToggle === "function") el.secPicker._syncSelectToggle();
     requestDraw();
   }
 
@@ -2000,7 +2032,7 @@
       view0 = full0;
       view1 = full1;
       checkedMarketKeys = loadChecks(MARKET_STORAGE_KEY, new Set(DEFAULT_MARKET_KEYS), DEFAULT_MARKET_KEYS);
-      checkedSectorKeys = loadChecks(SECTOR_STORAGE_KEY, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS);
+      checkedSectorKeys = loadChecks(SECTOR_STORAGE_KEY, new Set(DEFAULT_SECTOR_KEYS), DEFAULT_SECTOR_KEYS, true);
       fillHeader();
       bindIndexPicker();
       bindChart();

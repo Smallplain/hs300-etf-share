@@ -329,7 +329,8 @@ h1 {
 }
 
 .index-picker .index-group,
-.index-picker label {
+.index-picker label,
+.index-picker .index-select-actions {
   pointer-events: auto;
 }
 
@@ -346,6 +347,40 @@ h1 {
   letter-spacing: 0.06em;
   margin-right: 4px;
   font-size: 11px;
+}
+
+.index-select-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+  flex: 0 0 auto;
+}
+
+.index-select-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 1px 7px;
+  border: 1px solid #3a4558;
+  border-radius: 3px;
+  background: #151b26;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.index-select-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: #1a2130;
+}
+
+.index-select-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
 }
 
 .index-picker label {
